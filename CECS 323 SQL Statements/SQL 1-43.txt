@@ -1,0 +1,266 @@
+SELECT * FROM customers;
+
+SELECT productName, productLine FROM products;
+
+SELECT productName
+FROM products
+WHERE productLine = 'Motorcycles';
+
+SELECT productVendor
+FROM products
+WHERE productName = '1968 Ford Mustang';
+
+SELECT orderNumber, status
+FROM orders
+WHERE status = 'Resolved' or status = 'Cancelled';
+
+SELECT orderNumber, shippedDate
+FROM orders
+WHERE status = 'Shipped' and ShippedDate > RequiredDate;
+
+SELECT productName, quantityInStock
+FROM products
+WHERE buyPrice > MSRP;
+ 
+-- 8 -> 17.
+SELECT contactFirstName, contactLastName, creditLimit
+FROM customers
+WHERE creditLimit > 50000;
+
+SELECT * 
+FROM customers
+WHERE creditLimit = 0.0;
+
+SELECT * 
+FROM offices
+WHERE country != 'USA';
+
+SELECT * 
+FROM orders
+WHERE orderDate BETWEEN '2014-06-16' and '2014-07-07';
+
+SELECT * 
+FROM products
+WHERE quantityInStock < 1000;
+
+SELECT *
+FROM orders
+WHERE shippedDate > requiredDate;
+
+SELECT *
+FROM customers
+WHERE customerName LIKE '%Mini%';
+
+SELECT *
+FROM products
+WHERE productVendor = 'Highway 66 Mini Classics';
+
+SELECT *
+FROM products
+WHERE productVendor != 'Highway 66 Mini Classics';
+
+SELECT *
+FROM employees
+WHERE reportsTo is NULL;
+
+--multi join
+--22. Select customerName, orderDate, quantityOrdered, productLine, productName for all orders made and shipped in 2015
+
+SELECT DISTINCT customerName,orderDate, quantityOrdered, productLine, productName
+FROM customers
+NATURAL JOIN orders
+NATURAL JOIN orderDetails
+NATURAL JOIN products
+NATURAL JOIN productLines
+WHERE (orderDate BETWEEN '2015-01-01' AND '2015-12-31')
+AND (shippedDate BETWEEN '2015-01-01' AND '2015-12-31');
+
+--outer join
+--23. List products that didn't sell
+
+SELECT DISTINCT productName
+FROM orderDetails
+RIGHT OUTER JOIN products
+ON orderDetails.PRODUCTCODE = products.PRODUCTCODE
+WHERE orderDetails.PRODUCTCODE is NULL;
+
+--24. . List all customers and their sales rep even if they don’t have a sales rep    
+
+SELECT  customers.CUSTOMERNAME, employees.LASTNAME as employeeLastName, employees.FIRSTNAME as employeeFirstName
+FROM customers
+LEFT OUTER JOIN employees
+ON customers.SALESREPEMPLOYEENUMBER = employees.EMPLOYEENUMBER;
+
+-- 25. Find the total of all payments made by each customer
+SELECT customerNumber, SUM(amount) AS "Total Amount"
+FROM payments
+GROUP BY customerNumber;
+
+-- 26. Find the largest payment made by a customer
+SELECT MAX(amount) AS "Max Amount"
+FROM payments;
+
+-- 27. Find the average payment made by a customer
+SELECT AVG(amount) AS "Average Amount"
+FROM payments;
+
+-- 28. What is the total number of products per product line
+SELECT productLine, COUNT(productLine) as "Number Of Products"
+FROM products
+GROUP BY productLine;
+
+-- 29. What is the number of orders per status
+SELECT status, COUNT(orderNumber) AS "Number Of Orders"
+FROM Orders
+GROUP BY status;
+
+--30. List all offices and the number of employees working in each office 
+SELECT officeCode, COUNT(employeeNumber) AS "Number Of Employees"
+FROM Offices NATURAL JOIN employees
+GROUP BY officeCode;
+
+-- (extend 26) largest total payment
+SELECT MAX(totalAmount) AS "Max Amount"
+FROM (SELECT SUM(amount) AS totalAmount 
+    FROM payments
+    GROUP BY customerNumber) AS totalPayments;
+
+--31
+SELECT productLine, COUNT(productLine) AS "Amount of Products"
+FROM Products
+GROUP BY productLine
+HAVING COUNT(productLine) > 3;
+
+--32
+SELECT orderNumber, SUM(priceEach*quantityOrdered) AS "Total Price"
+FROM OrderDetails
+GROUP BY orderNumber
+HAVING  SUM(priceEach*quantityOrdered) > 60000;
+
+--33
+SELECT ProductName, SUM((priceEach - buyPrice)*quantityOrdered) AS "Profit"
+FROM Products NATURAL JOIN OrderDetails
+GROUP BY ProductName
+HAVING  SUM((priceEach - buyPrice)*quantityOrdered) > 60000;
+
+-- 34
+SELECT productName, AVG(quantityOrdered * priceEach) AS "Average Spent"
+FROM customers NATURAL JOIN orders NATURAL JOIN orderDetails NATURAL JOIN products
+WHERE customers.COUNTRY = 'Japan'
+GROUP BY productName
+ORDER BY AVG(quantityOrdered * priceEach) DESC;
+
+-- 35
+SELECT productName, SUM(MSRP - buyPrice) as "Profit"
+FROM Products
+GROUP BY productName
+ORDER BY productName;
+
+-- 36
+SELECT customerName, SUM(quantityOrdered * priceEach) as "Total Orders"
+FROM customers NATURAL JOIN orders NATURAL JOIN orderDetails
+GROUP BY customerName
+HAVING SUM(quantityOrdered * priceEach) > 100000
+ORDER BY SUM(quantityOrdered * priceEach) DESC;
+
+-- 37. List all customers who didn't order in 2015
+SELECT DISTINCT customerName AS "Customer"
+FROM customers
+WHERE customerNumber 
+NOT IN (SELECT customerNumber
+FROM orders
+WHERE year(orderDate) = 2015);
+
+SELECT DISTINCT customerName AS "Customer"
+FROM customers
+EXCEPT
+SELECT customerName AS "Customer"
+FROM customers NATURAL JOIN orders
+WHERE year(orderDate) = 2015;
+
+-- 38. List all people that we deal with (employees and customer contacts). Display first name, last name, company name (or employee)
+SELECT contactFirstName AS "First name", contactLastName AS "Last name", customerName AS "Work"
+FROM customers
+UNION
+SELECT firstName AS "First name", lastName AS "Last name", jobtitle AS "Work"
+FROM employees;
+
+-- 39.  List the last name, first name, and employee number of all of the employees who do not have any customers. Order by last name first, then the first name.
+SELECT lastName, firstName
+FROM employees
+EXCEPT
+SELECT lastName, firstName
+FROM employees INNER JOIN customers
+ON employees.EMPLOYEENUMBER = customers.SALESREPEMPLOYEENUMBER
+ORDER BY lastname, firstName;
+
+-- 40. List the states and the country that the state is part of that have customers but not offices, offices but not customers, or both one or more customers and one or more offices all in one query
+-- customers but not offices
+(SELECT 'Customer' AS "Category", "STATE" AS "State", country AS "Country"
+FROM Customers
+WHERE "STATE" IS NOT NULL
+EXCEPT
+SELECT 'Customer' AS "Category", "STATE" AS "State", country AS "Country"
+FROM Offices)
+UNION
+-- offices but not customers
+(SELECT 'Office' AS "Category", "STATE" AS "State", country AS "Country"
+FROM Offices
+WHERE "STATE" IS NOT NULL
+EXCEPT
+SELECT 'Office' AS "Category", "STATE" AS "State", country AS "Country"
+FROM Customers)
+UNION 
+-- both one or more customers and one or more offices all in one query
+SELECT 'Both' AS "Category", Customers."STATE" AS "State", Customers.country AS "Country"
+FROM Customers INNER JOIN Offices
+ON Customers."STATE" = Offices."STATE" AND Customers.country = Offices.country;
+
+-- 41. List the Product Code and Product name of every product that has never been in an order in which the customer asked for more than 48 of them. Order by the Product Name
+SELECT productCode, productName
+FROM products
+WHERE productCode
+NOT IN (SELECT productCode
+FROM orderDetails
+WHERE quantityOrdered > 48)
+ORDER BY productName;
+
+-- 42. List the first name and last name of any customer who ordered any products from either of the two product lines ‘Trains’ or ‘Trucks and Buses’. Do not use an “or”. Instead perform a union. Order by the customer’s name
+SELECT contactFirstName AS "First name", contactLastName AS "Last name"
+FROM customers NATURAL JOIN orders NATURAL JOIN orderDetails NATURAL JOIN products
+WHERE productLine = 'Trains'
+UNION
+SELECT contactFirstName AS "First name", contactLastName AS "Last name"
+FROM customers NATURAL JOIN orders NATURAL JOIN orderDetails NATURAL JOIN products
+WHERE productLine = 'Trucks and Buses'
+ORDER BY "First name", "Last name";
+
+-- 43. List the name of all customers who do not live in the same state and country with any other customer. Do not use a count for this exercise. Order by the customer name
+-- 17 lines
+SELECT customerName
+FROM customers
+EXCEPT
+SELECT DISTINCT A.CUSTOMERNAME
+FROM customers A INNER JOIN customers B
+ON A.COUNTRY = B.COUNTRY 
+AND (A."STATE" = B."STATE"
+OR (A."STATE" IS NULL AND B."STATE" IS NULL))
+AND A.CUSTOMERNUMBER <> B.CUSTOMERNUMBER;
+-- 10 lines
+SELECT customerName
+FROM customers
+WHERE "STATE" IS NOT NULL
+EXCEPT
+SELECT A.CUSTOMERNAME
+FROM customers A INNER JOIN customers B
+ON A.COUNTRY = B.COUNTRY 
+AND (A."STATE" = B."STATE"
+OR (A."STATE" IS NULL AND B."STATE" IS NULL))
+AND A.CUSTOMERNUMBER <> B.CUSTOMERNUMBER;
+
+-- RA:::::
+SELECT lastName, firstName, super."supervisorLastName", super."supervisorFirstName"
+FROM employees E NATURAL JOIN 
+(SELECT S.LASTNAME AS "supervisorLastName", S.FIRSTNAME AS "supervisorFirstName", S.EMPLOYEENUMBER AS "ID", S.REPORTSTO AS "Report"
+ FROM employees S) super
+WHERE E.REPORTSTO = super."ID" AND super."Report" IS NULL;

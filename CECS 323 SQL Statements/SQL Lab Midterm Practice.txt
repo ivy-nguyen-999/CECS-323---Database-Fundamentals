@@ -1,0 +1,52 @@
+-- LAB MIDTERM:
+SELECT customerName, productName
+FROM Customers NATURAL JOIN ORDERS NATURAL JOIN OrderDetails NATURAL JOIN Products
+GROUP BY customerName, productName
+HAVING COUNT (productName) > 5;
+
+SELECT productCode, productName, (100 * (MSRP - buyPrice) / buyPrice) as "% Profit"
+FROM products
+WHERE (100 * (MSRP - buyPrice) / buyPrice) > 124;
+
+SELECT country, COUNT(customerName) AS "Number of Customers"
+FROM customers
+GROUP BY country
+ORDER BY COUNT(customerName) DESC;
+
+SELECT productName, productVendor
+FROM products
+WHERE productVendor LIKE '%Gear%';
+
+SELECT orderNumber, orderDate, shippedDate
+FROM orders
+WHERE (orderDate BETWEEN '2014-06-16' and '2014-07-07')
+and (shippedDate BETWEEN '2014-06-20' and '2014-07-31')
+ORDER BY shippedDate;
+
+-- ACTUAL LAB MIDTERM
+SELECT lastName, firstName
+FROM employees LEFT JOIN customers
+ON employees.EMPLOYEENUMBER = customers.SALESREPEMPLOYEENUMBER
+WHERE customers.SALESREPEMPLOYEENUMBER IS NULL
+ORDER BY lastName ASC, firstName ASC;
+
+SELECT productName, OrderDate, quantityOrdered
+FROM orders NATURAL JOIN products NATURAL JOIN orderDetails
+WHERE quantityOrdered > 76;
+
+SELECT productLine, textDescription, COUNT(productScale) AS "Number of Different Scales"
+FROM products NATURAL JOIN productLines
+GROUP BY productLine, textDescription
+HAVING COUNT(productScale) > 5;
+
+SELECT customerName, year(orderDate) AS "Year", month(orderDate) AS "Month", COUNT(orderNumber) as "Number of Orders"
+FROM customers NATURAL JOIN orders
+GROUP BY customerName, year(orderDate), month(orderDate)
+HAVING COUNT(orderNumber) > 2
+ORDER BY COUNT(orderNumber);
+
+SELECT productName, COUNT(OrderNumber) AS "Number of Orders"
+FROM products NATURAL JOIN orders NATURAL JOIN orderDetails
+GROUP BY productName, month(orderDate)
+HAVING (COUNT(OrderNumber) > 2) AND (month(orderDate) = 3)
+ORDER BY COUNT(OrderNumber) DESC;

@@ -1,0 +1,39 @@
+CREATE TABLE Nationalities (
+    nation varchar(50) NOT NULL,
+    CONSTRAINT Nationality_PK PRIMARY KEY (nation)
+);
+
+INSERT INTO Nationalities (nation)
+VALUES ('German'), ('Russian'), ('Czech');
+
+CREATE TABLE Composers (
+    composerName varchar(50) NOT NULL,
+    yearOfBirth int,
+    nationality varchar(50) NOT NULL,
+    CONSTRAINT Composer_PK PRIMARY KEY (composerName),
+    CONSTRAINT nationalityComposer_FK FOREIGN KEY (nationality)
+    REFERENCES Nationalities (nation)
+);
+
+INSERT INTO Composers (composerName, yearOfBirth, nationality)
+VALUES ('Beethoven', 1770, 'German'),
+('Brahms', 1841, 'German'),
+('Shostakovich', 1906, 'Russian'),
+('Mozart, W.A.', 1756, 'German'),
+('Dvorak', 1841, 'Czech');
+
+CREATE TABLE Compositions (
+    title varchar(50) NOT NULL,
+    composerName varchar(50) NOT NULL,
+    CONSTRAINT Composition_PK PRIMARY KEY (title, composerName),
+    CONSTRAINT compositionComposer_FK FOREIGN KEY (composerName)
+    REFERENCES Composers (composerName)
+);
+
+INSERT INTO Compositions (title, composerName)
+VALUES ('Symphony #9', 'Beethoven'),
+('Symphony #9', 'Dvorak'),
+('Symphony #9', 'Shostakovich'),
+('Violin Concerto', 'Beethoven'),
+('Violin Concerto', 'Brahms'),
+('Clarinet Concerto', 'Mozart, W.A.');

@@ -1,0 +1,91 @@
+-- 55. Find customers who have ordered the same thing. For instance, if ‘AV Stores, Co.’ orders a particular item five times, and ‘Land of Toys Inc.’ orders that same item 4 times, it only counts as one item that they have ordered in common. Find only those customer pairs who have ordered at least 40 different items in common (3).
+
+SELECT DISTINCT One.CUSTOMERNAME AS "First Customer",
+Two.CUSTOMERNAME AS "Second Customer"
+FROM (customers One NATURAL JOIN orders NATURAL JOIN orderDetails)
+INNER JOIN (customers Two NATURAL JOIN orders NATURAL JOIN orderDetails)
+USING (productCode)
+WHERE One.CUSTOMERNUMBER > Two.CUSTOMERNUMBER
+GROUP BY One.CUSTOMERNAME, Two.CUSTOMERNAME
+HAVING COUNT (DISTINCT productCode) > 40;
+
+-- 56. What is the manager who manages the greatest number of employees (2) 
+SELECT (M.firstName|| ' ' ||M.lastName) AS "Manager Name"
+FROM employees M INNER JOIN employees E
+ON M.EMPLOYEENUMBER = E.REPORTSTO
+GROUP BY (M.firstName|| ' ' ||M.lastName)
+HAVING COUNT(*)  = (SELECT MAX(S."Count") AS "Max"
+                             FROM (SELECT COUNT(reportsTo) AS "Count" 
+                             FROM employees
+                             GROUP BY reportsTo) S);
+-- 57. Select all employees who work for the manager that manages the greatest number of employee (12) 
+
+SELECT (firstName||' '||lastName) AS "Employee Name"
+FROM employees  NATURAL JOIN
+(SELECT reportsTo, COUNT(reportsTo) AS "Count" 
+FROM employees 
+GROUP BY reportsTo) supervisors
+WHERE supervisors."Count" = (SELECT MAX(supervisors."Count") AS "Max"
+                             FROM (SELECT reportsTo, COUNT(reportsTo) AS "Count" 
+                             FROM employees 
+                             GROUP BY reportsTo) supervisors);
+
+-- 58. List all employees that have the same last name. Make sure each combination is listed only once (5) 
+SELECT (E1.firstName|| ' ' ||E1.lastName) AS "Employee Name 1", (E2.firstName|| ' ' ||E2.lastName) AS "Employee Name 2"
+FROM Employees E1 INNER JOIN Employees E2
+USING (lastName)
+WHERE E1.EMPLOYEENUMBER < E2.EMPLOYEENUMBER;
+-- 59. Select the name of each of two customers who have made at least one payment on the same date as the other. Make sure that each pair of customers only appears once. (46) 
+
+SELECT CustomerOne.CUSTOMERNAME AS "First Customer", CustomerTwo."Name" AS "Second Customer"
+FROM customers CustomerOne NATURAL JOIN payments P1
+NATURAL JOIN
+(SELECT C.CUSTOMERNUMBER AS "CustomerNum", C.CUSTOMERNAME AS "Name", P2.PAYMENTDATE AS "Date"
+FROM customers C NATURAL JOIN payments P2) CustomerTwo
+WHERE CustomerOne.CUSTOMERNUMBER > CustomerTwo."CustomerNum" 
+AND P1.PAYMENTDATE = CustomerTwo."Date";
+
+SELECT One.CUSTOMERNAME AS "First Customer", Two.CUSTOMERNAME AS "Second Customer"
+FROM (customers One NATURAL JOIN payments)
+INNER JOIN (customers Two NATURAL JOIN payments)
+USING (PaymentDate)
+WHERE One.CUSTOMERNUMBER > Two.CUSTOMERNUMBER;
+
+-- 60. Find customers that share the same state and country. The country must be one of the following: UK, Australia, Italy or Canada. Remember that not all countries have states at all, so you need to substitute a character sting like ‘N/A’ for the state in those cases so that you can compare the states. 
+SELECT C1.CUSTOMERNAME AS "Customer Name 1", C2.CUSTOMERNAME AS "Customer Name 2"
+FROM Customers C1 INNER JOIN Customers C2
+USING (country)
+WHERE (C1.COUNTRY = 'Australia' OR 
+                C1.COUNTRY = 'Italy' OR 
+                C1.COUNTRY = 'Canada' OR
+                C1.COUNTRY = 'UK') AND
+                (C1."STATE" = C2."STATE" OR
+                (C1."STATE" IS NULL AND C2."STATE" IS NULL)) AND 
+                C1.COUNTRY = C2.COUNTRY  AND 
+                C1.CUSTOMERNUMBER > C2.CUSTOMERNUMBER;
+-- 61. Find all of the customers who have the same sales representative as some other customer, and either customer name has ‘Australian’ in it. List each of the customers sharing a sales representative, and the name of the sales representative. Order by the name of the first customer, then the second. Do not show any combination more than once. (9)
+
+SELECT C1.CUSTOMERNAME AS "First Customer", C2."Name" AS "Second Customer",
+(E1.FIRSTNAME||' '||E1.LASTNAME) AS "Sale Rep"
+FROM Customers C1 
+INNER JOIN Employees E1 
+ON C1.salesRepEmployeeNumber = E1.employeeNumber
+NATURAL JOIN
+(SELECT C.customerNumber AS "Num", C.customerName AS "Name",
+E.employeeNumber AS "Employee"
+FROM Customers C
+INNER JOIN Employees E 
+ON C.salesRepEmployeeNumber = E.employeeNumber) C2
+WHERE C1.CUSTOMERNUMBER < C2."Num"
+AND E1.EMPLOYEENUMBER = C2."Employee"
+AND (C1.CUSTOMERNAME LIKE '%Australian%' OR C2."Name" LIKE '%Australian%');
+
+SELECT DISTINCT C1.CUSTOMERNAME AS "First Customer", C2.CUSTOMERNAME AS "Second Customer",
+(E1.FIRSTNAME||' '||E1.LASTNAME) AS "Sale Rep"
+FROM (Customers C1 INNER JOIN Employees E1 
+      ON C1.salesRepEmployeeNumber = E1.employeeNumber)
+INNER JOIN (Customers C2 INNER JOIN Employees E2 
+      ON C2.salesRepEmployeeNumber = E2.employeeNumber)
+USING (employeeNumber)
+WHERE C1.CUSTOMERNUMBER < C2.CUSTOMERNUMBER
+AND (C1.CUSTOMERNAME LIKE '%Australian%' OR C2.CUSTOMERNAME LIKE '%Australian%');

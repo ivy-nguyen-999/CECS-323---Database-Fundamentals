@@ -1,0 +1,115 @@
+CREATE TABLE states (
+    stateName varchar(25) NOT NULL,
+    stateCode varchar(2) NOT NULL,
+    dateJoinedUS date NOT NULL,
+    governor varchar(10) NOT NULL,
+    -- states's primary key is stateCode because
+    -- every state has a unique stateCode
+    CONSTRAINT states_pk PRIMARY KEY (stateCode),
+    CONSTRAINT state_uk01 (stateName)
+);
+
+CREATE TABLE cities (
+    stateCode varchar(2) NOT NULL,
+    cityName varchar(25) NOT NULL,
+    population int NOT NULL,
+    lastCensusDate date NOT NULL,
+    mayor varchar(10) NOT NULL,
+    -- cities's primary key is cityName because
+    -- every city in a state has a unique name
+    CONSTRAINT cities_pk PRIMARY KEY (stateCode, cityName),
+    -- Using primary key-foreign key relationship
+    -- to create a one-to-many relationship between two tables
+    CONSTRAINT cities_ibfk FOREIGN KEY (stateCode) REFERENCES states (stateCode)
+);
+
+*************************************************************************
+
+INSERT INTO states (stateName, stateCode, dateJoinedUS, governor)
+VALUES ('California', 'CA', '1850-09-09','Newsom' ),
+('Texas', 'TX', '1845-12-29', 'Abbott');
+
+*************************************************************************
+
+-- insert a row into the city table that does not have a correspoding entry in the state table::
+
+INSERT INTO cities (stateCode, cityName, population, lastcensusDate, mayor)
+VALUES ('LA', 'Long Beach', 469450, '2019-04-01', 'Garcia');
+
+result:
+[2:1] Failed in 0 s.
+[Exception, Error code 30,000, SQLState 23503] INSERT on table 'CITIES' caused a violation of foreign key constraint 'CITIES_IBFK' for key (LA).  The statement has been rolled back.
+  Line 2, column 1
+
+
+Execution finished after 0.105 s, 1 error occurred.
+
+*************************************************************************
+
+-- insert a city that has the same name as another city in the city table but is located on a different state
+
+INSERT INTO cities (stateCode, cityName, population, lastcensusDate, mayor)
+VALUES ('TX', 'Los Angeles', 3990469, '2019-04-01', 'Garcetti'),
+('CA', 'Los Angeles', 3990469, '2019-04-01', 'Garcetti');
+
+result:
+[2:1] Executed successfully in 0.028 s.
+2 rows affected.
+
+
+Execution finished after 0.036 s, no errors occurred.
+
+*************************************************************************
+
+INSERT INTO states (stateName, stateCode, dateJoinedUS, governor)
+VALUES ('Florida', 'FL', '1845-03-03','DeSantis');
+
+*************************************************************************
+
+-- delete a state with cities
+
+DELETE FROM states WHERE stateName = 'California';
+
+result:
+[2:1] Failed in 0 s.
+[Exception, Error code 30,000, SQLState 23503] DELETE on table 'STATES' caused a violation of foreign key constraint 'CITIES_IBFK' for key (CA).  The statement has been rolled back.
+  Line 2, column 1
+
+
+Execution finished after 0.061 s, 1 error occurred.
+
+*************************************************************************
+
+-- delete a state with no cities
+
+DELETE FROM states WHERE stateName = 'Florida';
+
+result:
+[2:1] Executed successfully in 0.015 s.
+1 row affected.
+
+
+Execution finished after 0.047 s, no errors occurred.
+
+*************************************************************************
+
+-- joins the two tables and display the results
+SELECT DISTINCT *
+FROM states
+NATURAL JOIN cities;
+
+*************************************************************************
+
+-- When drop a table, all of its constraints don't go away automatically. The order does matter.
+-- if we drop table states first:
+
+DROP TABLE states;
+
+[1:1] Failed in 0 s.
+[Exception, Error code 30,000, SQLState X0Y25] Operation 'DROP CONSTRAINT' cannot be performed on object 'STATES_PK' because CONSTRAINT 'CITIES_IBFK' is dependent on that object.
+  Line 1, column 1
+
+
+Execution finished after 0.09 s, 1 error occurred.
+
+*************************************************************************
